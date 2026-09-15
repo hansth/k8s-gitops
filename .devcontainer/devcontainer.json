@@ -1,0 +1,22 @@
+// Default Ubuntu-based DevContainer Template.
+// For more customization options, see https://containers.dev/implementors/json_reference
+{
+  "build": {
+    "context": "..",
+    "dockerfile": "./Dockerfile"
+  },
+  "postCreateCommand": "scripts/setup.sh",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:4.1.0": {}
+  },
+  "forwardPorts": [
+    "22111",
+    "22112"
+  ],
+  "customizations": {
+    "jetbrains": {
+      "backend": "IntelliJ",
+      "plugins": []
+    }
+  }
+}

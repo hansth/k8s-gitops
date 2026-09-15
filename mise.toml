@@ -1,0 +1,11 @@
+[tools]
+java = "openjdk-25.0.2"
+maven = "3.9.16"
+node = "lts"
+
+[env]
+APP_REPO = 'todo-app'
+GITOPS_REPO = 'k8s-gitops'
+
+[hooks]
+enter = "bash ./scripts/setup_project.sh"
