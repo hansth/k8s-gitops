@@ -5,6 +5,8 @@
 # installs pipx, uses pipx to install commitizen, and sets up pre-commit hooks
 # for checks and message validation against Conventional Commits.
 if ! command -v cz >/dev/null; then
+  git config --global user.name "Hans ter Horst"
+  git config --global user.email "hans@hansterhorst.com"
   git config --global push.autoSetupRemote true
   git config --global --add safe.directory "$PWD"
   pip install --user pipx

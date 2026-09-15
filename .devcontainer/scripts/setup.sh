@@ -8,5 +8,5 @@
 # enter` in mise.toml) so the commitizen/pre-commit bootstrap is guaranteed
 # to run once during container creation, regardless of whether an
 # interactive shell's `mise activate` enter-hook fires it later.
-/usr/local/bin/mise trust "$PWD/mise.toml" && /usr/local/bin/mise install && bash ./scripts/setup_project.sh
+/usr/local/bin/mise trust "$PWD/mise.toml" && /usr/local/bin/mise install && bash ./.devcontainer/scripts/setup_project.sh
 echo "$PWD" # /workspaces/k8sgitops

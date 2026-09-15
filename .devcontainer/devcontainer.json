@@ -5,9 +5,9 @@
     "context": "..",
     "dockerfile": "./Dockerfile"
   },
-  "postCreateCommand": "scripts/setup.sh",
+  "postCreateCommand": ".devcontainer/scripts/setup.sh",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:4.1.0": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {}
   },
   "forwardPorts": [
     "22111",
