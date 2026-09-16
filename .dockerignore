@@ -1,7 +1,22 @@
+# Ignore everything by default
 *
+
+# DevPod working dir
 !.devpod-internal
 !.devpod-internal/**
+
+# Pre-built JVM artifacts used by backend/Dockerfile
 !target/*-runner
 !target/*-runner.jar
 !target/lib/*
 !target/quarkus-app/*
+
+# Source needed by backend/Dockerfile.native (builds from source)
+!backend
+!backend/**
+!openapi
+!openapi/**
+
+# Wxcept local build output, not needed for a from-source build
+backend/target
+openapi/target
