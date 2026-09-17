@@ -10,10 +10,10 @@
     "ghcr.io/devcontainers/features/docker-in-docker:4": {}
   },
   "forwardPorts": [
-    "22111",
-    "22112",
-    "5432",
-    "5433"
+    22111,
+    22112,
+    5432,
+    5433
   ],
   "customizations": {
     "jetbrains": {
