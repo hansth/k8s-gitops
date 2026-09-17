@@ -11,12 +11,16 @@
 !target/lib/*
 !target/quarkus-app/*
 
-# Source needed by backend/Dockerfile.native (builds from source)
+# Source needed by Dockerfile
 !backend
 !backend/**
 !openapi
 !openapi/**
+!frontend
+!frontend/**
+!package.json
 
-# Wxcept local build output, not needed for a from-source build
+# Except local build output,
+# not needed for a from-source build
 backend/target
 openapi/target

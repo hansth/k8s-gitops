@@ -1,0 +1,11 @@
+{
+  "name": "todo",
+  "private": true,
+  "workspaces": [
+    "openapi",
+    "frontend"
+  ],
+  "scripts": {
+    "generate:api": "npm run generate --workspace=openapi"
+  }
+}

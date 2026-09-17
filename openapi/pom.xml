@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hansterhorst</groupId>
     <artifactId>openapi</artifactId>
@@ -16,7 +14,18 @@
         <openapi-generator-plugin.version>7.25.0</openapi-generator-plugin.version>
         <build-helper-plugin.version>3.6.1</build-helper-plugin.version>
     </properties>
-
+    <!--
+        Centralizes openapi.yaml and drives codegen for both consumers:
+          - Java sources are generated here, compiled, and packaged into this jar.
+            `mvn install` publishes com.hansterhorst:openapi:1.0-SNAPSHOT to ~/.m2 so
+            backend/ can depend on it like any other library instead of reaching into
+            a sibling module's generated sources.
+          - TypeScript types (schema.d.ts) for the @hansterhorst/openapi npm
+            workspace package defined by package.json in this same directory,
+            by delegating to its own `npm run generate` script.
+        Run `mvn install` here before building/running backend or frontend from a
+        clean checkout / after changing openapi.yaml.
+    -->
     <dependencies>
         <dependency>
             <groupId>jakarta.ws.rs</groupId>
@@ -52,6 +61,36 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <!--
+                    openapi is first in the reactor's module order, so this is
+                    the earliest point to install deps for the whole npm
+                    workspace (this module + frontend/) before anything below
+                    needs node_modules. no-package-lock avoids the
+                    platform-specific optional-dependency npm bug
+                    (npm/cli#4828) documented in frontend/Dockerfile.
+                    -->
+                    <execution>
+                        <id>npm-install</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                            <arguments>
+                                <argument>install</argument>
+                                <argument>--no-package-lock</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -97,6 +136,28 @@
                             <sources>
                                 <source>${project.build.directory}/generated-sources/openapi/src/gen/java</source>
                             </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-frontend-types</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <workingDirectory>${project.basedir}</workingDirectory>
+                            <arguments>
+                                <argument>run</argument>
+                                <argument>generate</argument>
+                            </arguments>
                         </configuration>
                     </execution>
                 </executions>

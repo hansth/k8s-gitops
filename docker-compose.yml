@@ -1,0 +1,62 @@
+####
+# Builds and runs the full containerized stack: Postgres, the Quarkus backend,
+# and the static frontend (nginx), wired together on the compose network.
+#
+#   docker compose up --build
+#
+# - Frontend: http://localhost:5173
+# - Backend:  http://localhost:8080/api/todos
+#
+# Zero config needed: %prod's DB_USERNAME/DB_PASSWORD default to `todo`/`todo`,
+# which matches this file's Postgres credentials (no POSTGRES_DB set, so
+# Postgres defaults the database name to POSTGRES_USER, i.e. `todo` too).
+#
+# This is distinct from backend/docker-compose.yml, which only runs Postgres +
+# pgAdmin to support `./mvnw quarkus:dev` outside a container.
+###
+services:
+  postgres:
+    image: postgres:17.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-hansth}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-hansth}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:22111/${DB_USERNAME:-hansth}
+      DB_USERNAME: ${DB_USERNAME:-hansth}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "22111:22111"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      # Container-to-container, resolved via compose's built-in DNS — nginx
+      # proxies /api to this server-side, so the browser never needs it.
+      BACKEND_ORIGIN: http://backend:22111
+    depends_on:
+      - backend
+    ports:
+      - "22112:80"
+
+volumes:
+  postgres-data:
