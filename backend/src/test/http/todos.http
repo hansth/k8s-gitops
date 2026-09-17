@@ -1,0 +1,26 @@
+### Create a new todo
+POST http://localhost:22111/api/todos
+Content-Type: application/json
+
+{
+  "title": "Kaas",
+  "completed": false
+}
+
+### List all todos
+GET http://localhost:22111/api/todos
+
+### Get a todo by id
+GET http://localhost:22111/api/todos/1
+
+### Update a todo by id
+PUT http://localhost:22111/api/todos/1
+Content-Type: application/json
+
+{
+  "title": "Buy milk and eggs",
+  "completed": true
+}
+
+### Delete a todo by id
+DELETE http://localhost:22111/api/todos/1

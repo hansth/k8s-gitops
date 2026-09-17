@@ -1,0 +1,8 @@
+# Ignore everything by default, then allow-list what's actually needed.
+*
+
+# Pre-built JVM artifacts used by Dockerfile (context = backend/ here)
+!target/*-runner
+!target/*-runner.jar
+!target/lib/*
+!target/quarkus-app/*

@@ -1,0 +1,45 @@
+####
+# Builds the backend from source (no local `./mvnw package -Dnative` needed first) and
+# produces a native (no-JVM) executable image — the native counterpart to `Dockerfile`.
+#
+# Like `Dockerfile`, this depends on ../openapi/ and must be built with the REPO ROOT as
+# build context:
+#
+# docker build -f backend/Dockerfile.native -t todo-backend-native .
+#
+# Then run it with:
+#
+# docker run -i --rm -p 22111:22111 todo-backend-native
+#
+# Native compilation needs GraalVM/Mandrel's `native-image`, not just a JDK, so the build
+# stage uses Quarkus's own Mandrel builder image instead of a plain `maven` image. That
+# image doesn't ship Maven, so `backend/mvnw` (which downloads its own pinned Maven, see
+# .mvn/wrapper/maven-wrapper.properties) is used for both this module's own build AND to
+# install ../openapi/ — passing `-f` to target the other module's pom works the same as a
+# plain `mvn` install would. See `Dockerfile`'s header comment for why `-Dexec.skip=true`
+# is used for that step and why tests are skipped.
+#
+# The build stage's default user (quarkus, uid 1001) doesn't own the build context files
+# Docker COPYs in — hence --chown on both COPY instructions, so `mvnw`/Maven can write
+# their own build output (target/, the downloaded Maven distribution, etc).
+####
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:25.0-jdk-25 AS build
+WORKDIR /home/quarkus/app
+
+COPY --chown=quarkus:quarkus openapi/pom.xml openapi/openapi.yaml openapi/
+COPY --chown=quarkus:quarkus backend/ backend/
+RUN cd backend && chmod +x mvnw \
+    && ./mvnw -f ../openapi/pom.xml install -Dexec.skip=true \
+    && ./mvnw package -DskipTests -Dnative
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7 AS runtime
+WORKDIR /work/
+RUN chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
+COPY --from=build --chown=1001:root --chmod=0755 /home/quarkus/app/backend/target/*-runner /work/application
+
+EXPOSE 22111
+USER 1001
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
