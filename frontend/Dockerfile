@@ -1,46 +1,67 @@
 ####
-# Builds and serves the static production frontend.
 #
 # This is an npm workspace member (depends on @hansterhorst/openapi, see ../openapi/),
-# so it must be built with the REPO ROOT as build context, not this directory:
+# so it must be built from the REPO ROOT as build context:
 #
-# docker build -f frontend/Dockerfile -t todo-frontend .
+# docker build -f frontend/Dockerfile -t todo-frontend:1.0.0 .
 #
-# Then run it with:
+# Then run the container with:
 #
-# docker run -i --rm -p 8080:80 todo-frontend
+# docker run --rm -p 22112:80 \
+#  -e BACKEND_ORIGIN=http://host.docker.internal:22111 \
+#  todo-frontend:1.0.0
 #
-# The container serves the built static assets and reverse-proxies /api to the
-# backend server-side, so the browser only ever talks same-origin — no CORS, and
-# nothing backend-specific is baked into the JS bundle. Point it at a reachable
-# backend via the BACKEND_ORIGIN env var at *run* time (defaults to
-# http://host.docker.internal:8080, i.e. a backend container publishing 8080 on
-# the host):
-#
-# docker build -f frontend/Dockerfile -t todo-frontend .
-# docker run -i --rm -p 5173:80 -e BACKEND_ORIGIN=http://host.docker.internal:8080 todo-frontend:1.0
 ###
-FROM node:22-bookworm-slim AS build
+
+# BUILD STAGE
+# Starts from the slim variant of the current Node LTS image,
+# named `build` so later stages can reference it.
+FROM node:lts-slim AS build
+
+# Sets the working directory.
 WORKDIR /app
 
+# Copies only the `package.json` files, to optimize layer caching. If these files don't change,
+# Docker reuses the cached `npm install` layer. The file structure with `./`, `openapi/`, and `frontend/`
+# indicates an npm workspaces monorepo, where the root `package.json` declares workspace members.
 COPY package.json ./
 COPY openapi/package.json openapi/
 COPY frontend/package.json frontend/
-# Deliberately NOT copying package-lock.json / using `npm ci` here: the committed lockfile
-# is generated on macOS and its optionalDependencies resolution doesn't include Linux
-# platform-specific native bindings (e.g. vite's rolldown) at all — npm silently skips
-# them against that lockfile (a known npm bug: npm/cli#4828) regardless of `ci` vs
-# `install`. A lockfile-free `npm install` resolves fresh for whatever platform is
-# actually running, trading exact-version-pinned Docker builds for one that works.
+
+# Installs dependencies for all workspaces, and tells npm not to write or update a `package-lock.json`.
+# Note this also means installs are not pinned to a lockfile, so versions come from the ranges in the manifests.
 RUN npm install --no-package-lock
 
+# Copies the actual source for both workspaces, after dependencies are installed.
+# Changes to source code invalidate only these layers, not the install layer above.
 COPY openapi/ openapi/
 COPY frontend/ frontend/
+
+# Runs the `build` script defined in `frontend/package.json`.
+# This produces the compiled static assets, expected at `/app/frontend/dist`based on the copy in the next stage.
 RUN npm run build --workspace=frontend
 
-FROM nginx:1.27-alpine AS runtime
+# RUN STAGE
+# Run a small nginx image on Alpine. Nothing from the build stage carries over except what is explicitly copied.
+FROM nginx:stable-alpine3.24 AS runtime
+
+# Sets a default environment variable for the backend address. `host.docker.internal` resolves to the host machine from inside the container.
 ENV BACKEND_ORIGIN=http://host.docker.internal:22111
+
+# Copy the nginx config template that runs `envsubst` on every `*.template` file in that directory at container start,
+# substituting environment variables like `BACKEND_ORIGIN` and writing the result to `/etc/nginx/conf.d/`.
+# And copy the built static assets from the `build` stage into nginx's default web root.
 COPY frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
 
+# Run the image as a non-root user and set directory group ownership to `root`.
+# Nginx needs to write to its cache, config directory, and PID/socket directory.
+# `g+rwX` permits read/write and execute on existing directories and executables.
+RUN chown -R 1001:root /var/cache/nginx /etc/nginx/conf.d /var/run \
+    && chmod -R g+rwX /var/cache/nginx /etc/nginx/conf.d /var/run
+
+# Documents the port the app listens on.
 EXPOSE 80
+
+# Run the container as non-root user UID `1001` instead of root, so nginx runs unprivileged.
+USER 1001

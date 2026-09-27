@@ -1,49 +1,72 @@
 ####
-# Builds the backend from source (no local `./mvnw package` needed first) and produces
-# a runnable JVM-mode image.
 #
-# This module depends on ../openapi/ (com.hansterhorst:openapi, see ../openapi/README.md),
-# which isn't on Maven Central, so it must be built with the REPO ROOT as build context,
-# not this directory:
+# The `Dockerfile`, this depends on ../openapi/ and must be built with the REPO ROOT as
+# build context:
 #
-# docker build -f backend/Dockerfile -t todo-backend .
+# docker build -t todo-backend:1.0.0 -f backend/Dockerfile .
 #
-# Then run it with:
+# Then run the container with:
 #
-# docker run -i --rm -p 22111:22111 todo-backend
+# docker run --rm -p 22111:22111 --add-host=host.docker.internal:host-gateway \
+#  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/<database> \
+#  -e DB_USERNAME=<username> \
+#  -e DB_PASSWORD=<password> \
+#  todo-backend:1.0.0
 #
-# `mvn install` on ../openapi/ also normally regenerates schema.d.ts for the npm
-# (frontend) side via an exec-maven-plugin step that shells out to `npm run generate`.
-# This image only needs the Java side (the generated JAX-RS interfaces/DTOs the Maven
-# jar is built from), so that npm step is skipped with -Dexec.skip=true — it's a
-# separate plugin execution from the Java codegen/packaging and skipping it just avoids
-# needing a Node.js toolchain in this build stage for an output this image never uses.
+####
 #
-# Tests are skipped in this build: `%test` uses Quarkus Dev Services (Testcontainers),
-# which needs a Docker socket that isn't available inside `docker build`.
-###
-FROM maven:3.9-eclipse-temurin-21 AS build
+# BUILD STAGE
+# Maven with Eclipse Temurin JDK 25 on Alpine
+# https://hub.docker.com/layers/library/maven/
+FROM maven:3.9.16-eclipse-temurin-25-alpine AS build
+
+# Set the working directory for the build
 WORKDIR /app
 
+# Copy the OpenAPI module (pom and spec)
 COPY openapi/pom.xml openapi/openapi.yaml openapi/
+
+# Install the OpenAPI module into the local Maven repository
 RUN mvn -f openapi/pom.xml install -Dexec.skip=true
 
+# Copy the backend source code
 COPY backend/ backend/
+
+# Build the backend as a Quarkus fast-jar without running tests
 RUN mvn -f backend/pom.xml package -DskipTests
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24 AS runtime
+# RUNTIME STAGE
+#
+# Red Hat UBI 9 OpenJDK 21 runtime image
+# https://catalog.redhat.com/en/software/containers/ubi9/openjdk-25-runtime/
+FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24 AS runtime
 
+# Set the language for the container environment
 ENV LANGUAGE='en_US:en'
 
-# We make four distinct layers so if there are application changes the library layers can be re-used
+# Copy the dependency libraries owned by user 185
 COPY --from=build --chown=185 /app/backend/target/quarkus-app/lib/ /deployments/lib/
+
+# Copy the runnable jar (quarkus-run.jar) owned by user 185
 COPY --from=build --chown=185 /app/backend/target/quarkus-app/*.jar /deployments/
+
+# Copy the application classes owned by user 185
 COPY --from=build --chown=185 /app/backend/target/quarkus-app/app/ /deployments/app/
+
+# Copy the Quarkus generated files owned by user 185
 COPY --from=build --chown=185 /app/backend/target/quarkus-app/quarkus/ /deployments/quarkus/
 
+# Document the port the application listens on
 EXPOSE 22111
+
+# Run the container as the non-root user 185
 USER 185
+
+# Bind the HTTP server to all interfaces and use the JBoss log manager
 ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+
+# Tell the run script which jar to start
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
 
+# Start the application through the image's Java run script
 ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]

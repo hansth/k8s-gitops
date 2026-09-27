@@ -1,45 +1,63 @@
 ####
-# Builds the backend from source (no local `./mvnw package -Dnative` needed first) and
-# produces a native (no-JVM) executable image — the native counterpart to `Dockerfile`.
 #
-# Like `Dockerfile`, this depends on ../openapi/ and must be built with the REPO ROOT as
+# The `Dockerfile`, this depends on ../openapi/ and must be built with the REPO ROOT as
 # build context:
 #
-# docker build -f backend/Dockerfile.native -t todo-backend-native .
+# docker build -t todo-backend:1.0.0 -f backend/Dockerfile.native .
 #
-# Then run it with:
+# Then run the container with:
 #
-# docker run -i --rm -p 22111:22111 todo-backend-native
+# docker run --rm -p 22111:22111 --add-host=host.docker.internal:host-gateway \
+#  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/<database> \
+#  -e DB_USERNAME=<username> \
+#  -e DB_PASSWORD=<password> \
+#  todo-backend-native:1.0.0
 #
-# Native compilation needs GraalVM/Mandrel's `native-image`, not just a JDK, so the build
-# stage uses Quarkus's own Mandrel builder image instead of a plain `maven` image. That
-# image doesn't ship Maven, so `backend/mvnw` (which downloads its own pinned Maven, see
-# .mvn/wrapper/maven-wrapper.properties) is used for both this module's own build AND to
-# install ../openapi/ — passing `-f` to target the other module's pom works the same as a
-# plain `mvn` install would. See `Dockerfile`'s header comment for why `-Dexec.skip=true`
-# is used for that step and why tests are skipped.
-#
-# The build stage's default user (quarkus, uid 1001) doesn't own the build context files
-# Docker COPYs in — hence --chown on both COPY instructions, so `mvnw`/Maven can write
-# their own build output (target/, the downloaded Maven distribution, etc).
 ####
-FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:25.0-jdk-25 AS build
+
+# BUILD STAGE
+#
+# Mandrel builder image with GraalVM native tooling for Java 25
+# https://quay.io/repository/quarkus/ubi9-quarkus-mandrel-builder-image?tab=tags
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25.0.4.1 AS build
+
+# Set the working directory for the build
 WORKDIR /home/quarkus/app
 
+# Copy the OpenAPI module (pom and spec) owned by the quarkus user
 COPY --chown=quarkus:quarkus openapi/pom.xml openapi/openapi.yaml openapi/
+
+# Copy the backend source code owned by the quarkus user
 COPY --chown=quarkus:quarkus backend/ backend/
+
+# Make the Maven wrapper executable, install the OpenAPI module into the local
+# Maven repository, and build the backend as a native executable without tests
 RUN cd backend && chmod +x mvnw \
     && ./mvnw -f ../openapi/pom.xml install -Dexec.skip=true \
     && ./mvnw package -DskipTests -Dnative
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7 AS runtime
+# RUNTIME STAGE
+#
+# Minimal UBI 9 base image to keep the final image small
+# https://catalog.redhat.com/en/software/containers/ubi9-minimal//
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8 AS runtime
+
+# Set the working directory for the application
 WORKDIR /work/
+
+# Give user 1001 and the root group ownership of /work with group write access
 RUN chown 1001 /work \
     && chmod "g+rwX" /work \
     && chown 1001:root /work
+
+# Copy the native executable from the build stage and make it executable
 COPY --from=build --chown=1001:root --chmod=0755 /home/quarkus/app/backend/target/*-runner /work/application
 
+# Document the port the application listens on
 EXPOSE 22111
+
+# Run the container as the non-root user 1001
 USER 1001
 
+# Start the native application and bind the HTTP server to all interfaces
 ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
