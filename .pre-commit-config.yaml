@@ -1,6 +1,50 @@
+# Use the devcontainer's installed Node.js.
+default_language_version:
+  node: system
+
 repos:
+  # Commitizen enforces Conventional Commits message format
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.18.0
     hooks:
       - id: commitizen
         stages: [ commit-msg ]
+
+  # Generic Meta Checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  # Quarkus Java Formatter (Spotless) + Checkstyle (report-only)
+  - repo: local
+    hooks:
+      - id: spotless-quarkus
+        name: Spotless Java Formatting
+        entry: ./backend/mvnw -f backend/pom.xml spotless:apply
+        language: system
+        files: '\.java$'
+        pass_filenames: false
+      - id: checkstyle-quarkus
+        name: Checkstyle (report-only)
+        entry: ./backend/mvnw -f backend/pom.xml checkstyle:check
+        language: system
+        files: '\.java$'
+        pass_filenames: false
+        verbose: true
+
+  # React Frontend Linter (Oxlint)
+  - repo: https://github.com/oxc-project/mirrors-oxlint
+    rev: v1.85.0
+    hooks:
+      - id: oxlint
+        args: [ --deny-warnings ]
+
+  # React Frontend Formatter (Oxfmt replacing Prettier)
+  - repo: https://github.com/oxc-project/mirrors-oxfmt
+    rev: v0.70.0
+    hooks:
+      - id: oxfmt
+        # Ensures safe silent exits if no JS/TS files are staged in the commit
+        args: [ --no-error-on-unmatched-pattern ]

@@ -8,5 +8,13 @@
 # enter` in mise.toml) so the commitizen/pre-commit bootstrap is guaranteed
 # to run once during container creation, regardless of whether an
 # interactive shell's `mise activate` enter-hook fires it later.
-/usr/local/bin/mise trust "$PWD/mise.toml" && /usr/local/bin/mise install && bash ./.devcontainer/scripts/setup_project.sh
+#
+# Node is also set as the global default because pre-commit builds its
+# node hook environments (oxlint, oxfmt) in ~/.cache/pre-commit, outside
+# this project, where mise.toml doesn't apply and the npm shim has no version.
+/usr/local/bin/mise trust "$PWD/mise.toml" && \
+/usr/local/bin/mise install && \
+/usr/local/bin/mise use -g node@lts && \
+bash ./.devcontainer/scripts/setup_project.sh
+
 echo "$PWD" # /workspaces/k8sgitops
