@@ -9,4 +9,4 @@ APP_REPO = 'todo-app'
 GITOPS_REPO = 'k8s-gitops'
 
 [hooks]
-enter = "bash ./scripts/setup_project.sh"
+enter = "bash ./.devcontainer/scripts/setup_project.sh"
