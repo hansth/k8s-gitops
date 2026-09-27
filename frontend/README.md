@@ -1,68 +1,104 @@
-# Todo Frontend
+# Frontend
 
-A small React + TypeScript UI for the [Todo backend](../backend/), built contract-first against the same [OpenAPI spec](../openapi/).
+The web app for the todo app. It's built with React 19, TypeScript and Vite, and talks to the [backend](../backend/)
+API.
 
-## Stack
+The API is defined first in [`openapi/openapi.yaml`](../openapi/). The `openapi` package generates TypeScript types from
+it, so the frontend never needs hand-written request or response types. If the API changes in a way the frontend doesn't
+expect, `npm run build` fails before you open a browser.
 
-- **React 19** + **TypeScript**, scaffolded with **Vite**
-- **openapi-fetch** — thin, fully-typed fetch client generated from the OpenAPI contract (no hand-written request/response types)
-- **oxlint** — linting (`npm run lint`)
-
-## Architecture
+## How it fits together
 
 ```
-@hansterhorst/openapi        (npm workspace package, types only — see ../openapi/README.md)
-    │  paths, components generated from ../openapi/openapi.yaml
-    ▼
-src/api/client.ts             openapi-fetch client typed against `paths`
-    │
-    ▼
-src/api/todos.ts              listTodos / createTodo / updateTodo / deleteTodo
-    │
-    ▼
-src/App.tsx                   list, add, toggle-complete, inline-edit, delete
+@hansterhorst/openapi      TypeScript types generated from ../openapi/openapi.yaml
+        │
+        ▼
+src/api/client.ts          typed API client (openapi-fetch)
+        │
+        ▼
+src/api/todos.ts           listTodos, createTodo, updateTodo, deleteTodo
+        │
+        ▼
+src/App.tsx                the page: list, add, mark as done, edit, delete
 ```
 
-`App.tsx` never talks to `fetch` directly — every request goes through `src/api/todos.ts`, which is typed end-to-end against the shared spec via `@hansterhorst/openapi`. If the backend's contract changes, `tsc` fails here before you ever open a browser.
+`App.tsx` never calls `fetch` itself. Every request goes through `src/api/todos.ts`.
 
-In dev, `vite.config.ts` proxies `/api/*` to `http://localhost:8080` (the backend), so the app calls same-origin relative paths and never hardcodes a backend URL.
+The app always calls the API on its own address (`/api/...`). Something in between passes those calls on to the backend:
 
-## Running locally
+- in dev, the Vite dev server (`vite.config.ts`)
+- in the container, nginx (`nginx.conf.template`)
 
-This is an npm workspace member of the repo root — install from the **repo root**, not here:
+So the backend URL is never built into the JavaScript, and the browser doesn't need CORS.
 
-```shell script
-cd ..
-npm install
+## Run it locally
+
+You need Node, from `mise.toml`. The devcontainer has it.
+
+**1. Install packages from the project root**, not from this folder. The frontend is part of an npm workspace together
+with `openapi`:
+
+```bash
+npm install   # in the project root
 ```
 
-Then, with the [backend](../backend/) running on `:8080`:
+**2. Start the backend** on port `22111`. See the [backend README](../backend/README.md).
 
-```shell script
+**3. Start the dev server** from the `frontend` folder:
+
+```bash
 npm run dev
 ```
 
-`predev`/`prebuild` automatically regenerate `@hansterhorst/openapi`'s types (`npm --prefix ../openapi run generate`) before starting or building, so you don't need to run that by hand — see [`../openapi/README.md`](../openapi/README.md) if you want to understand or run that step directly.
+The app runs on <http://localhost:22112>. Calls to `/api` go to `http://localhost:22111`.
 
-- App: `http://localhost:5173`
+Before `dev` and `build` start, npm regenerates the OpenAPI types for you (`predev` / `prebuild`). You never need to run
+that step by hand.
 
-## Other scripts
+## Scripts
 
-```shell script
-npm run build      # tsc -b && vite build → dist/
-npm run preview    # serve the production build locally
-npm run lint       # oxlint
+| Command                 | What it does                                             |
+|-------------------------|----------------------------------------------------------|
+| `npm run dev`           | start the dev server with live reload                    |
+| `npm run build`         | type-check and build the app into `dist/`                |
+| `npm run preview`       | serve the built app from `dist/`                         |
+| `npm run lint`          | check the code with oxlint                               |
+| `npm test`              | run the tests once                                       |
+| `npm run test:watch`    | run the tests again on every change                      |
+| `npm run test:coverage` | run the tests and write a coverage report to `coverage/` |
+
+## Tests
+
+The tests use Vitest with Testing Library, in a fake browser (jsdom). They live in `src/test/`:
+
+- `App.test.tsx`: tests the page the way a user uses it
+- `todos.test.ts`: tests the API functions
+- `setup.ts`: shared test setup
+
+## Code quality
+
+| Check                                    | When it runs                        | Run it yourself                    |
+|------------------------------------------|-------------------------------------|------------------------------------|
+| Lint (oxlint, rules in `.oxlintrc.json`) | every commit, any warning blocks it | `npm run lint`                     |
+| Formatting (oxfmt)                       | every commit                        | `pre-commit run oxfmt --all-files` |
+
+The oxlint version in pre-commit (`v1.85.0`) should match `oxlint` in `package.json`. Update both together. For more,
+see `notes.md` in the project root.
+
+## Docker
+
+The image builds the app and serves it with nginx. Build it from the **project root**, because it needs the `openapi`
+package too:
+
+```bash
+docker build -f frontend/Dockerfile -t todo-frontend:1.0.0 .
+docker run --rm -p 22112:80 -e BACKEND_ORIGIN=http://host.docker.internal:22111 todo-frontend:1.0.0
 ```
 
-## Container
+The app then runs on <http://localhost:22112>.
 
-`Dockerfile` builds and serves the production `dist/` via nginx. Because this is an npm workspace member (depends on `@hansterhorst/openapi`), it must be built from the **repo root** as context, not from here:
+`BACKEND_ORIGIN` tells nginx where the backend is. You set it when you start the container, not when you build it. The
+default is `http://host.docker.internal:22111`, which is a backend running on your own machine.
 
-```shell script
-cd ..
-docker build -f frontend/Dockerfile -t todo-frontend .
-docker run --rm -p 22112:80 -e BACKEND_ORIGIN=http://host.docker.internal:22111 todo-frontend:1.0
-docker run --rm -p 22111:22111 --add-host=host.docker.internal:host-gateway -e DB_URL=jdbc:postgresql://host.docker.internal:5432/hansth -e DB_USERNAME=hansth -e DB_PASSWORD=password todo-backend-native:1.0
-```
-
-Like the Vite dev server, the container proxies `/api` — server-side, via nginx — so the browser only ever calls same-origin and nothing backend-specific is baked into the JS bundle. Point it at the backend with the `BACKEND_ORIGIN` env var at **run** time (defaults to `http://host.docker.internal:8080`, i.e. a backend container publishing `8080` on the host).
+To run the whole app (PostgreSQL, backend and frontend) in containers, use `docker compose up --build` from the project
+root.

@@ -1,67 +1,140 @@
-# backend
+# Backend
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+The REST API for the todo app. It stores todos in PostgreSQL and is built with [Quarkus](https://quarkus.io/) on Java 25
+(compiled for Java 21).
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+The API is defined first in `openapi/openapi.yaml`. The `openapi` module generates the Java interface (`TodosApi`) and
+models (`Todo`) from it, and this backend implements that interface.
 
-## Running the application in dev mode
+## Project layout
 
-You can run your application in dev mode that enables live coding using:
+```
+src/main/java/com/hansterhorst/
+├── resources/      TodoResource: the REST endpoints, implements the generated TodosApi
+├── services/       TodoService: business logic and transactions
+├── repositories/   TodoRepository: database access (Hibernate Panache)
+├── entities/       TodoEntity, BaseEntity: the database tables
+└── exceptions/     NotFoundException and the mapper that turns it into a 404
+src/main/resources/
+├── application.yaml       settings
+└── db/migration/          Flyway SQL scripts, run at startup
+src/test/
+├── java/                  tests
+└── http/todos.http        example requests for the IntelliJ HTTP client
+```
 
-```shell script
+## Run it locally
+
+You need Docker, and the tools from `mise.toml` (Java, Maven, Node). The devcontainer has all of these.
+
+**1. Install the `openapi` module** (once, and again after you change `openapi.yaml`). The backend depends on it and it
+isn't published anywhere:
+
+```bash
+./backend/mvnw -f pom.xml -pl openapi -am install -DskipTests   # from the project root
+```
+
+**2. Start PostgreSQL** (and pgAdmin) from the `backend` folder:
+
+```bash
+docker compose up -d
+```
+
+- PostgreSQL: `localhost:5432`, user `hansth`, password `password`
+- pgAdmin: <http://localhost:5433>, login `admin@example.com` / `admin`
+
+**3. Start the backend in dev mode.** Code changes reload automatically:
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:22111/q/dev/>.
+The API runs on <http://localhost:22111>. Flyway creates the tables on startup.
 
-## Packaging and running the application
+Useful pages in dev mode:
 
-The application can be packaged using:
+| Page         | URL                                   |
+|--------------|---------------------------------------|
+| Dev UI       | <http://localhost:22111/q/dev-ui>     |
+| Swagger UI   | <http://localhost:22111/q/swagger-ui> |
+| OpenAPI spec | <http://localhost:22111/q/openapi>    |
+| Health check | <http://localhost:22111/health>       |
 
-```shell script
-./mvnw package
+## API
+
+| Method   | Path              | What it does   |
+|----------|-------------------|----------------|
+| `GET`    | `/api/todos`      | List all todos |
+| `POST`   | `/api/todos`      | Create a todo  |
+| `GET`    | `/api/todos/{id}` | Get one todo   |
+| `PUT`    | `/api/todos/{id}` | Update a todo  |
+| `DELETE` | `/api/todos/{id}` | Delete a todo  |
+
+A todo looks like this:
+
+```json
+{
+  "id": 1,
+  "title": "Buy milk",
+  "completed": false
+}
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+An unknown `id` returns `404 Not Found`. Try the requests in `src/test/http/todos.http`, or with curl:
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+```bash
+curl -X POST localhost:22111/api/todos -H 'Content-Type: application/json' -d '{"title":"Buy milk"}'
+curl localhost:22111/api/todos
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+## Settings
 
-## Creating a native executable
+Set these as environment variables to override the defaults in `application.yaml`:
 
-You can create a native executable using:
+| Variable      | Default (dev)                             | Default (prod)                          | What it is                               |
+|---------------|-------------------------------------------|-----------------------------------------|------------------------------------------|
+| `DB_URL`      | `jdbc:postgresql://localhost:5432/hansth` | `jdbc:postgresql://localhost:5432/todo` | database connection                      |
+| `DB_USERNAME` | `hansth`                                  | `todo`                                  | database user                            |
+| `DB_PASSWORD` | `password`                                | `todo`                                  | database password                        |
+| `CORS_ORIGIN` | `http://localhost:22112`                  | same                                    | the frontend URL allowed to call the API |
 
-```shell script
-./mvnw package -Dnative
+## Database changes
+
+Hibernate only checks the tables (`validate`); it never changes them. To change the database, add a new Flyway script in
+`src/main/resources/db/migration/`, for example `V2__add_due_date.sql`. Never edit a script that has already run.
+
+## Tests
+
+```bash
+./mvnw test                     # unit and API tests
+./mvnw verify -DskipITs=false   # also runs the integration tests (*IT) against the packaged app
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+The tests need Docker. Quarkus starts a temporary PostgreSQL container for them (Dev Services), so you don't need the
+one from `docker compose`.
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+## Code quality
+
+| Check                                        | When it runs                       | Run it yourself                 |
+|----------------------------------------------|------------------------------------|---------------------------------|
+| Formatting (google-java-format via Spotless) | every commit                       | `./mvnw spotless:apply`         |
+| Style rules (Checkstyle, Google rules)       | every commit, blocks on violations | `./mvnw checkstyle:check`       |
+| Bug finder (SpotBugs)                        | GitHub Actions only                | `./mvnw compile spotbugs:check` |
+
+Missing Javadoc is allowed. For the full story, see `notes.md` in the project root.
+
+## Build
+
+```bash
+./mvnw package                   # builds target/quarkus-app/
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-You can then execute your native executable with: `./target/backend-1.0-SNAPSHOT-runner`
+The Docker image is built from the project root, because it needs the `openapi` module too:
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+```bash
+docker build -f backend/Dockerfile -t todo-backend .
+```
 
-## Related Guides
-
-- REST ([guide](https://quarkus.io/guides/rest)): Build RESTful web services and APIs using Jakarta REST (formerly
-  JAX-RS)
-
-## Provided Code
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+To run the whole app (PostgreSQL, backend and frontend) in containers, use `docker compose up --build` from the project
+root.
