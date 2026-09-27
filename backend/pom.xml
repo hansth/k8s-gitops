@@ -174,16 +174,17 @@
                 </configuration>
             </plugin>
             <plugin>
-                <!-- Checkstyle with Google style rules (report-only) -->
+                <!-- Checkstyle with Google style rules -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>${checkstyle-plugin.version}</version>
                 <configuration>
                     <configLocation>google_checks.xml</configLocation>
+                    <!-- Ignore violation rules -->
+                    <violationIgnore>MissingJavadocType,MissingJavadocMethod</violationIgnore>
                     <violationSeverity>warning</violationSeverity>
                     <consoleOutput>true</consoleOutput>
-                    <!-- Report-only violations -->
-                    <failOnViolation>false</failOnViolation>
+                    <failOnViolation>true</failOnViolation>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
             </plugin>
