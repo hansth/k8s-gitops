@@ -1,0 +1,81 @@
+name: Frontend Docker
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'openapi/**'
+      - 'package.json'
+      - '.dockerignore'
+      - '.github/workflows/frontend-testing.yaml'
+      - '.github/workflows/frontend-docker.yaml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to commit the Trivy result
+    steps:
+
+      - name: Wait for frontend tests
+        uses: lewagon/wait-on-check-action@v1.9.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }} # The pull request's last commit, where the checks are reported
+          check-name: 'Frontend Testing' # The job name in frontend-testing.yaml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+
+      # Builds from the project root, because the image needs the openapi package too.
+      # Nothing is pushed yet; a push step belongs after the scan.
+      - name: Build frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: frontend/Dockerfile
+          tags: todo-frontend:test
+          push: false
+          load: true # keep the image in local Docker, so Trivy can scan it
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: todo-frontend:test
+          format: table
+          output: trivy-results.txt # saved to a file for the comment below
+          exit-code: '0' # '1' to fail the workflow on findings
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      # Shows the result in the log, and writes the pull request comment:
+      # one "Total" line per part of the image, plus the full table (click to open)
+      - name: Prepare Trivy comment
+        if: always() && hashFiles('trivy-results.txt') != ''
+        run: |
+          cat trivy-results.txt
+          {
+            echo "### Frontend Trivy scan: HIGH and CRITICAL"
+            echo
+            grep "^Total:" trivy-results.txt | sed 's/^/- /'
+            echo
+            echo "<details><summary>Full result</summary>"
+            echo
+            echo '```'
+            cat trivy-results.txt
+            echo '```'
+            echo "</details>"
+          } > trivy-comment.md
+
+      # One comment on the pull request, updated on every push
+      - name: Trivy comment
+        if: always() && hashFiles('trivy-comment.md') != ''
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: frontend-trivy
+          path: trivy-comment.md
