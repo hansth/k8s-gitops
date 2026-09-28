@@ -59,6 +59,9 @@ jobs:
           pass-emoji: ':white_check_mark:'
           fail-emoji: ':x:'
 
+      - name: Run SpotBugs
+        run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check
+
       # One comment on the pull request, updated on every push
       - name: Coverage comment
         if: always() && steps.jacoco.outcome == 'success'
@@ -72,6 +75,3 @@ jobs:
 
             - [Download the full report](${{ steps.upload.outputs.artifact-url }}) (unzip and open `index.html`)
             - [Coverage per file](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-      - name: Run SpotBugs
-        run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check

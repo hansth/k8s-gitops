@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to post the Trivy comment
     steps:
 
       - name: Wait for backend tests
@@ -25,13 +28,52 @@ jobs:
       - uses: docker/setup-buildx-action@v4
 
       # Builds from the project root, because the image needs the openapi module too.
-      # Only builds to check the Dockerfile works; nothing is pushed.
+      # Nothing is pushed yet; a push step belongs after the scan.
       - name: Build backend image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
-          tags: todo-backend:latest
+          tags: todo-backend:test
           push: false
+          load: true # keep the image in local Docker, so Trivy can scan it
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: todo-backend:test
+          format: table
+          output: trivy-results.txt # saved to a file for the comment below
+          exit-code: '0' # '1' to fail the workflow on findings
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      # Shows the result in the log, and writes the pull request comment:
+      # one "Total" line per part of the image, plus the full table (click to open)
+      - name: Prepare Trivy comment
+        if: always() && hashFiles('trivy-results.txt') != ''
+        run: |
+          cat trivy-results.txt
+          {
+            echo "### Trivy scan: HIGH and CRITICAL"
+            echo
+            grep "^Total:" trivy-results.txt | sed 's/^/- /'
+            echo
+            echo "<details><summary>Full result</summary>"
+            echo
+            echo '```'
+            cat trivy-results.txt
+            echo '```'
+            echo "</details>"
+          } > trivy-comment.md
+
+      # One comment on the pull request, updated on every push
+      - name: Trivy comment
+        if: always() && hashFiles('trivy-comment.md') != ''
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: backend-trivy
+          path: trivy-comment.md
