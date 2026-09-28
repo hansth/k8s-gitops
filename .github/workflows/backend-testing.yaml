@@ -10,6 +10,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # to post the coverage comment
     steps:
       - uses: actions/checkout@v4
 
@@ -28,8 +31,46 @@ jobs:
       - name: Check style
         run: ./backend/mvnw -f backend/pom.xml -B checkstyle:check
 
-      - name: Run tests
+      # Runs unit and integration tests, and writes the coverage report to backend/target/jacoco-report/
+      - name: Run tests with coverage
         run: ./backend/mvnw -f backend/pom.xml -B verify -DskipITs=false
+
+      # Download it from the workflow run page and open index.html
+      - name: Upload coverage report
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/target/jacoco-report/
+
+      # Coverage table per file, shown on the workflow run page
+      - name: Coverage summary
+        id: jacoco
+        if: always() && hashFiles('backend/target/jacoco-report/jacoco.xml') != ''
+        uses: madrapps/jacoco-report@v1.8.0
+        with:
+          paths: backend/target/jacoco-report/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Backend coverage
+          min-coverage-overall: 80
+          comment-type: summary
+          pass-emoji: ':white_check_mark:'
+          fail-emoji: ':x:'
+
+      # One comment on the pull request, updated on every push
+      - name: Coverage comment
+        if: always() && steps.jacoco.outcome == 'success'
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: backend-coverage
+          message: |
+            ### Backend coverage: ${{ steps.jacoco.outputs.coverage-overall }}% ${{ steps.jacoco.outputs.coverage-overall >= 80 && '✅' || '❌' }}
+
+            Minimum is 80%.
+
+            - [Download the full report](${{ steps.upload.outputs.artifact-url }}) (unzip and open `index.html`)
+            - [Coverage per file](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Run SpotBugs
         run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check
