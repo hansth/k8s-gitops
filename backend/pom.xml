@@ -264,6 +264,10 @@
                         <configuration>
                             <dataFile>${project.build.directory}/jacoco-quarkus.exec</dataFile>
                             <outputDirectory>${project.build.directory}/jacoco-report</outputDirectory>
+                            <excludes>
+                                <!-- Generated from openapi.yaml, not our code -->
+                                <exclude>com/hansterhorst/resources/generated/**</exclude>
+                            </excludes>
                         </configuration>
                     </execution>
                     <execution>

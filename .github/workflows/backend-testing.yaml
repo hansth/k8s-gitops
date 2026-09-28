@@ -10,6 +10,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # to post the coverage comment
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +42,18 @@ jobs:
         with:
           name: backend-coverage
           path: backend/target/jacoco-report/
+
+      # Shows the coverage as a comment on the pull request and on the workflow run page
+      - name: Coverage comment
+        if: always() && hashFiles('backend/target/jacoco-report/jacoco.xml') != ''
+        uses: madrapps/jacoco-report@v1.8.0
+        with:
+          paths: backend/target/jacoco-report/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Backend coverage
+          min-coverage-overall: 80
+          update-comment: true
+          comment-type: both
 
       - name: Run SpotBugs
         run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check
