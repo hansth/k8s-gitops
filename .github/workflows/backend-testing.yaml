@@ -1,4 +1,4 @@
-name: Backend
+name: Backend Testing
 
 on:
   pull_request:
@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    name: Backend Testing
     runs-on: ubuntu-latest
     permissions:
       contents: read

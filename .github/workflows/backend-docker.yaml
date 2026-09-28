@@ -1,0 +1,37 @@
+name: Backend Docker
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'openapi/**'
+      - '.dockerignore'
+      - '.github/workflows/backend-docker.yaml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Wait for backend tests
+        uses: lewagon/wait-on-check-action@v1.9.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }} # The pull request's last commit, where the checks are reported
+          check-name: 'Backend Testing' # The job name in backend-testing.yaml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10 # Check every 10 seconds
+
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+
+      # Builds from the project root, because the image needs the openapi module too.
+      # Only builds to check the Dockerfile works; nothing is pushed.
+      - name: Build backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: backend/Dockerfile
+          tags: todo-backend:latest
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
