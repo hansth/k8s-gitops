@@ -1,0 +1,72 @@
+name: Frontend Testing
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'openapi/**'
+      - 'package.json'
+      - '.dockerignore' # same paths as frontend-docker.yaml, so its wait always finds this check
+      - '.github/workflows/frontend-testing.yaml'
+      - '.github/workflows/frontend-docker.yaml'
+
+jobs:
+  test:
+    name: Frontend Testing # frontend-docker.yaml waits for this name
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to post the coverage comment
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # From the project root: installs the whole workspace (openapi + frontend).
+      # --no-package-lock, like the Maven build and the Dockerfile (npm/cli#4828).
+      - name: Install packages
+        run: npm install --no-package-lock
+
+      - name: Generate API types
+        run: npm run generate --workspace=openapi
+
+      - name: Lint
+        run: npm run lint --workspace=frontend
+
+      # Runs the tests, writes the coverage report to frontend/coverage/ and fails below 80% lines
+      - name: Run tests with coverage
+        run: npm run test:coverage --workspace=frontend
+
+      # Type-checks against the API types and builds the app
+      - name: Build
+        run: npm run build --workspace=frontend
+
+      # Download it from the workflow run page and open index.html
+      - name: Upload coverage report
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+
+      # Reads the total line coverage for the comment below
+      - name: Read coverage
+        id: coverage
+        if: always() && hashFiles('frontend/coverage/coverage-summary.json') != ''
+        run: echo "lines=$(jq '.total.lines.pct' frontend/coverage/coverage-summary.json)" >> "$GITHUB_OUTPUT"
+
+      # One comment on the pull request, updated on every push
+      - name: Coverage comment
+        if: always() && steps.coverage.outcome == 'success'
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: frontend-coverage
+          message: |
+            ### Frontend coverage: ${{ steps.coverage.outputs.lines }}% ${{ steps.coverage.outputs.lines >= 80 && '✅' || '❌' }}
+
+            Minimum is 80% of lines.
+
+            - [Download the full report](${{ steps.upload.outputs.artifact-url }}) (unzip and open `index.html`)
