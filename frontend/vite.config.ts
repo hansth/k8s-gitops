@@ -1,5 +1,5 @@
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,20 +9,25 @@ export default defineConfig({
     port: 22112,
     host: true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:22111',
+      "/api": {
+        target: "http://localhost:22111",
         changeOrigin: true,
       },
     },
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/test/**', 'src/main.tsx', '**/*.d.ts'],
+      provider: "v8",
+      // json-summary is read by the GitHub Actions coverage comment
+      reporter: ["text", "html", "json-summary"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/test/**", "src/main.tsx", "**/*.d.ts"],
+      // Fail `npm run test:coverage` when line coverage is below 80%, like the backend
+      thresholds: {
+        lines: 80,
+      },
     },
   },
-})
+});
