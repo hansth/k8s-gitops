@@ -25,13 +25,24 @@ jobs:
       - uses: docker/setup-buildx-action@v4
 
       # Builds from the project root, because the image needs the openapi module too.
-      # Only builds to check the Dockerfile works; nothing is pushed.
+      # Nothing is pushed yet; a push step belongs after the scan.
       - name: Build backend image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
-          tags: todo-backend:latest
+          tags: todo-backend:test
           push: false
+          load: true # keep the image in local Docker, so Trivy can scan it
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: todo-backend:test
+          format: table
+          exit-code: '0' # '1' to fail the workflow on findings
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
