@@ -28,8 +28,17 @@ jobs:
       - name: Check style
         run: ./backend/mvnw -f backend/pom.xml -B checkstyle:check
 
-      - name: Run tests
+      # Runs unit and integration tests, and writes the coverage report to backend/target/jacoco-report/
+      - name: Run tests with coverage
         run: ./backend/mvnw -f backend/pom.xml -B verify -DskipITs=false
+
+      # Download it from the workflow run page and open index.html
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/target/jacoco-report/
 
       - name: Run SpotBugs
         run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check
