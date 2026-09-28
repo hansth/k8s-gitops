@@ -1,0 +1,35 @@
+name: Backend
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'openapi/**'
+      - '.github/workflows/backend-testing.yaml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Install openapi module
+        run: ./backend/mvnw -f pom.xml -pl openapi -am -B install -DskipTests -Dexec.skip=true
+
+      - name: Check formatting
+        run: ./backend/mvnw -f backend/pom.xml -B spotless:check
+
+      - name: Check style
+        run: ./backend/mvnw -f backend/pom.xml -B checkstyle:check
+
+      - name: Run tests
+        run: ./backend/mvnw -f backend/pom.xml -B verify -DskipITs=false
+
+      - name: Run SpotBugs
+        run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check
