@@ -37,14 +37,16 @@ jobs:
 
       # Download it from the workflow run page and open index.html
       - name: Upload coverage report
+        id: upload
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
           path: backend/target/jacoco-report/
 
-      # Shows the coverage as a comment on the pull request and on the workflow run page
-      - name: Coverage comment
+      # Coverage table per file, shown on the workflow run page
+      - name: Coverage summary
+        id: jacoco
         if: always() && hashFiles('backend/target/jacoco-report/jacoco.xml') != ''
         uses: madrapps/jacoco-report@v1.8.0
         with:
@@ -52,8 +54,23 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Backend coverage
           min-coverage-overall: 80
-          update-comment: true
-          comment-type: both
+          comment-type: summary
+          pass-emoji: ':white_check_mark:'
+          fail-emoji: ':x:'
+
+      # One comment on the pull request, updated on every push
+      - name: Coverage comment
+        if: always() && steps.jacoco.outcome == 'success'
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: backend-coverage
+          message: |
+            ### Backend coverage: ${{ steps.jacoco.outputs.coverage-overall }}% ${{ steps.jacoco.outputs.coverage-overall >= 80 && '✅' || '❌' }}
+
+            Minimum is 80%.
+
+            - [Download the full report](${{ steps.upload.outputs.artifact-url }}) (unzip and open `index.html`)
+            - [Coverage per file](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - name: Run SpotBugs
         run: ./backend/mvnw -f backend/pom.xml -B spotbugs:check
