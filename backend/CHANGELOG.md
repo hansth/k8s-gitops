@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/hansth/k8s-gitops/compare/backend-v0.2.0...backend-v0.3.0) (2026-09-29)
+
+
+### Features
+
+* **gha:** test github actions workflow ([#18](https://github.com/hansth/k8s-gitops/issues/18)) ([cf19e87](https://github.com/hansth/k8s-gitops/commit/cf19e87e73d9bc46fa396945d9132b5ad7b2e870))
+
 ## [0.2.0](https://github.com/hansth/k8s-gitops/compare/backend-v0.1.0...backend-v0.2.0) (2026-09-29)
 
 
