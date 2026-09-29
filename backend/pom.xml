@@ -8,6 +8,7 @@
     <packaging>quarkus</packaging>
 
     <!-- trigger GitHub Action without code change -->
+    <!-- trigger GitHub Action without code change -->
 
     <properties>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>

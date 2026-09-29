@@ -6,13 +6,13 @@ on:
       - 'frontend/**'
       - 'openapi/**'
       - 'package.json'
-      - '.dockerignore' # same paths as frontend-docker.yaml, so its wait always finds this check
       - '.github/workflows/frontend-testing.yaml'
-      - '.github/workflows/frontend-docker.yaml'
 
 jobs:
   test:
     name: Frontend Testing # frontend-docker.yaml waits for this name
+    # Stage 1 runs once, on your own pull request; skip it on the Release Please pull request
+    if: github.head_ref != 'release-please--branches--main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
