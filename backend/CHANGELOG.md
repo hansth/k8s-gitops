@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/hansth/k8s-gitops/compare/backend-v0.1.0...backend-v0.2.0) (2026-09-29)
+
+
+### Features
+
+* **gha:** trigger github action for the backend ([#12](https://github.com/hansth/k8s-gitops/issues/12)) ([13580ee](https://github.com/hansth/k8s-gitops/commit/13580ee3e88d02c6bff45dd5556fbf5bbc58da9b))
+
 ## [0.1.0](https://github.com/hansth/k8s-gitops/compare/backend-v0.0.1...backend-v0.1.0) (2026-09-29)
 
 
