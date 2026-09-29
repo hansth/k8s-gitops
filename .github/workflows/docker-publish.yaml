@@ -5,8 +5,8 @@ name: Build and Push Docker Images
 on:
   push:
     tags:
-      - 'todo-backend-v*'
-      - 'todo-frontend-v*'
+      - 'backend-v*'
+      - 'frontend-v*'
 
 env:
   REGISTRY: ghcr.io
