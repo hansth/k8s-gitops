@@ -10,6 +10,7 @@ import java.util.List;
 public class TodoResource implements TodosApi {
 
   // add comment to trigger GitHub Action without code change.
+  // add comment to trigger GitHub Action without code change.
 
   @Inject TodoService todoService;
 
