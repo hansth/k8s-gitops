@@ -7,6 +7,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>quarkus</packaging>
 
+    <!-- trigger GitHub Action without code change -->
+
     <properties>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>
         <maven.compiler.release>21</maven.compiler.release>
@@ -139,7 +141,8 @@
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
                         <!-- Write @QuarkusTest coverage into the shared file; the report comes from jacoco-maven-plugin -->
-                        <quarkus.jacoco.data-file>${project.build.directory}/jacoco-quarkus.exec</quarkus.jacoco.data-file>
+                        <quarkus.jacoco.data-file>${project.build.directory}/jacoco-quarkus.exec
+                        </quarkus.jacoco.data-file>
                         <quarkus.jacoco.reuse-data-file>true</quarkus.jacoco.reuse-data-file>
                         <quarkus.jacoco.report>false</quarkus.jacoco.report>
                     </systemPropertyVariables>
@@ -195,7 +198,8 @@
                 <configuration>
                     <configLocation>google_checks.xml</configLocation>
                     <!-- Ignore violation rules -->
-                    <violationIgnore>MissingJavadocType,MissingJavadocMethod,AvoidStarImport,AbbreviationAsWordInName</violationIgnore>
+                    <violationIgnore>MissingJavadocType,MissingJavadocMethod,AvoidStarImport,AbbreviationAsWordInName
+                    </violationIgnore>
                     <violationSeverity>warning</violationSeverity>
                     <consoleOutput>true</consoleOutput>
                     <failOnViolation>true</failOnViolation>
