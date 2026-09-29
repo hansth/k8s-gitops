@@ -41,6 +41,11 @@ RUN mvn -f backend/pom.xml package -DskipTests
 # https://catalog.redhat.com/en/software/containers/ubi9/openjdk-25-runtime/
 FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24 AS runtime
 
+# Run as `root` user and update the package index and
+# upgrade all installed packages to their latest versions.
+USER root
+RUN microdnf upgrade -y --nodocs --setopt=install_weak_deps=0 && microdnf clean all
+
 # Set the language for the container environment
 ENV LANGUAGE='en_US:en'
 

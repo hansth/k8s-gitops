@@ -1,0 +1,23 @@
+name: Release Please
+
+# Reads the Conventional Commits on main and keeps one release pull request up to date.
+# Merging that pull request creates the tags (backend-v0.1.0, frontend-v0.1.0, openapi-v0.1.0),
+# the GitHub releases and updates the CHANGELOG.md of each part.
+# Config: release-please-config.json and .release-please-manifest.json in the project root.
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # to create tags and releases, and update CHANGELOG.md
+      pull-requests: write # to open and update the release pull request
+      issues: write        # to add the "autorelease" labels
+    steps:
+      - uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.TODO_APP_GITHUBACTION_TOKEN}}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

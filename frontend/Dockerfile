@@ -45,6 +45,9 @@ RUN npm run build --workspace=frontend
 # Run a small nginx image on Alpine. Nothing from the build stage carries over except what is explicitly copied.
 FROM nginx:stable-alpine3.24 AS runtime
 
+# Update the package index and upgrade all installed packages to their latest versions.
+RUN apk upgrade --no-cache
+
 # Sets a default environment variable for the backend address. `host.docker.internal` resolves to the host machine from inside the container.
 ENV BACKEND_ORIGIN=http://host.docker.internal:22111
 
