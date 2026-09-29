@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "initial-version": "0.0.1",
+  "bump-minor-pre-major": true,
+  "include-component-in-tag": true,
+  "packages": {
+    "backend": {
+      "release-type": "simple",
+      "component": "backend",
+      "extra-files": ["pom.xml"]
+    },
+    "frontend": {
+      "release-type": "node",
+      "component": "frontend"
+    },
+    "openapi": {
+      "release-type": "node",
+      "component": "openapi"
+    }
+  }
+}

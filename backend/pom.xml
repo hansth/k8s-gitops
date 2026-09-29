@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hansterhorst</groupId>
     <artifactId>backend</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>quarkus</packaging>
 
     <properties>
@@ -43,7 +43,8 @@
         <dependency>
             <groupId>com.hansterhorst</groupId>
             <artifactId>openapi</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <!-- Must match <version> in openapi/pom.xml. Release Please doesn't change it; see notes.md -->
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
