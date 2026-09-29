@@ -1,5 +1,5 @@
 {
-  "backend": "0.0.1",
-  "frontend": "0.0.1",
-  "openapi": "0.0.1"
+  "backend": "0.1.0",
+  "frontend": "0.1.0",
+  "openapi": "0.0.2"
 }
