@@ -7,11 +7,12 @@ on:
       - 'openapi/**'
       - 'package.json'
       - '.dockerignore'
-      - '.github/workflows/frontend-testing.yaml'
       - '.github/workflows/frontend-docker.yaml'
 
 jobs:
   build:
+    # Stage 2 runs once, on your own pull request; skip it on the Release Please pull request
+    if: github.head_ref != 'release-please--branches--main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
