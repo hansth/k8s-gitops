@@ -60,9 +60,14 @@ jobs:
         run: |
           cat trivy-results.txt
           {
-            echo "### Trivy scan: HIGH and CRITICAL"
+            echo "### Backend Trivy scan: HIGH and CRITICAL"
             echo
-            grep "^Total:" trivy-results.txt | sed 's/^/- /'
+            # Trivy only prints "Total:" lines when it found something
+            if grep -q "^Total:" trivy-results.txt; then
+              grep "^Total:" trivy-results.txt | sed 's/^/- /'
+            else
+              echo "No HIGH or CRITICAL vulnerabilities with a fix ✅"
+            fi
             echo
             echo "<details><summary>Full result</summary>"
             echo
