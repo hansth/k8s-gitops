@@ -1,8 +1,13 @@
 [tools]
+helm = "latest"
 java = "openjdk-25.0.2"
+k3d = "latest"
+k9s = "latest"
+kubectl = "latest"
 maven = "3.9.16"
 node = "lts"
 trivy = "latest"
+vim = "latest"
 
 [env]
 APP_REPO = 'todo-app'

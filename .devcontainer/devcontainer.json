@@ -20,5 +20,9 @@
       "backend": "IntelliJ",
       "plugins": []
     }
-  }
+  },
+  "mounts": [
+    "source=/run/user/1000/ssh-agent.socket,target=/ssh-agent,type=bind"
+  ],
+  "remoteEnv": { "SSH_AUTH_SOCK": "/ssh-agent" }
 }
