@@ -1,0 +1,104 @@
+#!/bin/bash
+set -e
+
+# Colors for better output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Script directory
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+SCRIPT_DIR="${ROOT_DIR}/kubernetes/scripts"
+K8S_DIR="$(dirname "$SCRIPT_DIR")"
+CLUSTER_NAME="todo-cluster"
+NAMESPACE="dev-todo"
+
+echo -e "${YELLOW}Kubernetes Deployment Helper${NC}"
+echo -e "${YELLOW}This script will set up a k3d cluster and deploy the application.${NC}"
+
+# Check for required tools
+check_dependency() {
+  if ! command -v "$1" &>/dev/null; then
+    echo -e "\n${RED}Error: $1 is not installed. Please install it before proceeding.${NC}"
+    exit 1
+  fi
+}
+
+# Check installed dependencies
+echo -e "\n${YELLOW}Checking dependencies...${NC}"
+check_dependency k3d
+check_dependency kubectl
+check_dependency docker
+echo -e "${GREEN}All dependencies are installed.${NC}"
+
+# Check if cluster exists
+if k3d cluster list | grep -q "$CLUSTER_NAME"; then
+
+  echo -e "\n${YELLOW}Cluster $CLUSTER_NAME already exists.${NC}"
+  read -p "Do you want to delete and recreate it? (y/n): " -r
+
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Deleting existing cluster...${NC}"
+    k3d cluster delete "$CLUSTER_NAME"
+  else
+    echo -e "${GREEN}Using existing cluster.${NC}"
+  fi
+fi
+
+# Create cluster if it doesn't exist
+if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
+
+  echo -e "\n${YELLOW}Creating k3d cluster using config file...${NC}"
+  k3d cluster create --config "$K8S_DIR/k3d-config.yaml"
+  echo -e "${GREEN}Cluster created successfully!${NC}"
+
+  echo -e "\n${YELLOW}Install CNPG CRDs...${NC}"
+  kubectl apply -f \
+    https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.20/releases/cnpg-1.20.6.yaml
+  echo -e "${GREEN}CNPG CRDs installed successfully!${NC}"
+fi
+
+# Configure kubectl to use the cluster
+echo -e "\n${YELLOW}Configuring kubectl to use the cluster...${NC}"
+kubectl config use-context k3d-"$CLUSTER_NAME"
+
+# Build Docker images
+echo -e "\n${YELLOW}Building Docker images...${NC}"
+echo "Building backend image..."
+docker build -t backend:dev -f "$ROOT_DIR/backend/Dockerfile" "$ROOT_DIR"
+echo "Building frontend image..."
+docker build -t frontend:dev -f "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR"
+
+# Import images into k3d
+echo -e "\n${YELLOW}Importing images into ${CLUSTER_NAME}...${NC}"
+k3d image import backend:dev -c "$CLUSTER_NAME"
+k3d image import frontend:dev -c "$CLUSTER_NAME"
+
+# Deploy the application using kustomize
+echo -e "\n${YELLOW}Deploying manifests using kustomize...${NC}"
+kubectl apply -k "$K8S_DIR/overlays/dev"
+
+# Wait for pods to be ready
+echo -e "\n${YELLOW}Waiting for pods to be ready...${NC}"
+sleep 10s
+kubectl wait --for=condition=Ready pods -l 'app in (backend,frontend)' -n "${NAMESPACE}" --timeout=360s
+echo -e "${GREEN}Application deployed successfully!${NC}"
+
+# Get service info
+echo -e "\n${YELLOW}Getting service information...${NC}"
+kubectl get services -n "${NAMESPACE}"
+
+# Get service ports
+FRONTEND_PORT=$(kubectl get svc frontend -n ${NAMESPACE} -o=jsonpath='{.spec.ports[0].port}' 2>/dev/null)
+BACKEND_PORT=$(kubectl get svc backend -n ${NAMESPACE} -o=jsonpath='{.spec.ports[0].port}' 2>/dev/null)
+
+# Access the application in the browser
+echo -e "\n${YELLOW}Access the application for local development:${NC}"
+echo -e "Frontend: http://localhost:$FRONTEND_PORT"
+echo -e "Backend API: http://localhost:$BACKEND_PORT"
+echo -e "Backend health check: http://localhost:$BACKEND_PORT/health"
+
+# Delete the cluster manually
+echo -e "\n${YELLOW}To delete the cluster when finished:${NC}"
+echo -e "k3d cluster delete $CLUSTER_NAME\n"
