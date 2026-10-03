@@ -1,0 +1,16 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: todo-database-v1
+spec:
+  instances: 3
+
+  bootstrap:
+    initdb:
+      database: todos
+      owner: CHANGED_BY # see overlays/dev/backend/kustomization.yaml
+      secret:
+        name: todo-db-creds
+
+  storage:
+    size: 1Gi
