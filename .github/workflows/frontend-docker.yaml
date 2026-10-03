@@ -7,6 +7,7 @@ on:
       - 'openapi/**'
       - 'package.json'
       - '.dockerignore'
+      - '.github/workflows/frontend-testing.yaml'
       - '.github/workflows/frontend-docker.yaml'
 
 jobs:

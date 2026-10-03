@@ -6,6 +6,7 @@ on:
       - 'backend/**'
       - 'openapi/**'
       - '.dockerignore'
+      - '.github/workflows/backend-testing.yaml'
       - '.github/workflows/backend-docker.yaml'
 
 jobs:

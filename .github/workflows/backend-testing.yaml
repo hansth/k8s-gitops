@@ -5,7 +5,9 @@ on:
     paths:
       - 'backend/**'
       - 'openapi/**'
+      - '.dockerignore' # same paths as backend-docker.yaml, so its wait always finds this check
       - '.github/workflows/backend-testing.yaml'
+      - '.github/workflows/backend-docker.yaml'
 
 jobs:
   test:

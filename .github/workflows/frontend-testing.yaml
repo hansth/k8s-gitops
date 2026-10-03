@@ -6,7 +6,9 @@ on:
       - 'frontend/**'
       - 'openapi/**'
       - 'package.json'
+      - '.dockerignore' # same paths as frontend-docker.yaml, so its wait always finds this check
       - '.github/workflows/frontend-testing.yaml'
+      - '.github/workflows/frontend-docker.yaml'
 
 jobs:
   test:
