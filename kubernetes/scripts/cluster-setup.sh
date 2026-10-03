@@ -13,6 +13,9 @@ SCRIPT_DIR="${ROOT_DIR}/kubernetes/scripts"
 K8S_DIR="$(dirname "$SCRIPT_DIR")"
 CLUSTER_NAME="todo-cluster"
 NAMESPACE="dev-todo"
+# CloudNativePG operator version:
+# https://github.com/cloudnative-pg/cloudnative-pg/releases
+CNPG_VERSION="1.30.1"
 
 echo -e "${YELLOW}Kubernetes Deployment Helper${NC}"
 echo -e "${YELLOW}This script will set up a k3d cluster and deploy the application.${NC}"
@@ -46,18 +49,23 @@ if k3d cluster list | grep -q "$CLUSTER_NAME"; then
   fi
 fi
 
-# Create cluster if it doesn't exist
+# Create cluster if it doesn't exist with CloudNativePG operator
 if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
 
   echo -e "\n${YELLOW}Creating k3d cluster using config file...${NC}"
   k3d cluster create --config "$K8S_DIR/k3d-config.yaml"
   echo -e "${GREEN}Cluster created successfully!${NC}"
 
-  echo -e "\n${YELLOW}Install CNPG CRDs...${NC}"
-  kubectl apply -f \
-    https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.20/releases/cnpg-1.20.6.yaml
-  echo -e "${GREEN}CNPG CRDs installed successfully!${NC}"
+  echo -e "\n${YELLOW}Installing CloudNativePG operator ${CNPG_VERSION}...${NC}"
+  kubectl apply --server-side -f \
+    "https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-${CNPG_VERSION%.*}/releases/cnpg-${CNPG_VERSION}.yaml"
+  echo -e "${GREEN}CloudNativePG operator installed.${NC}"
 fi
+
+# Wait until the CloudNativePG operator runs
+echo -e "\n${YELLOW}Waiting for the CloudNativePG operator to be ready...${NC}"
+kubectl rollout status deployment cnpg-controller-manager -n cnpg-system --timeout=180s
+echo -e "${GREEN}CloudNativePG operator is ready.${NC}"
 
 # Configure kubectl to use the cluster
 echo -e "\n${YELLOW}Configuring kubectl to use the cluster...${NC}"
