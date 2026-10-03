@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      name: frontend
+      labels:
+        app: frontend
+    spec:
+      initContainers:
+        - name: wait-backend-pod-up
+          image: busybox:1.38-musl
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for backend Pod is available:"
+              until nc -z -w 2 backend 22111; do
+                echo "Backend Pod not ready..."
+                sleep 5
+              done
+              echo "Backend Pod is ready."
+      containers:
+        - name: frontend
+          image: todo-frontend:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          env:
+            - name: BACKEND_ORIGIN
+              value: http://backend:22111
+      restartPolicy: Always
