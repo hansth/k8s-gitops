@@ -11,3 +11,6 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/image
         value: "frontend:dev"
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never

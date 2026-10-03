@@ -30,16 +30,26 @@ spec:
               echo "CNPG database Pod is ready."
       containers:
         - name: backend
-          image: todo-backend:1.0
-          imagePullPolicy: Never
+          image: ghcr.io/hansth/todo-backend:0.3.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 22111
               protocol: TCP
 
+          # Backend is up and the database is reachable
+          readinessProbe:
+            httpGet:
+              port: 22111
+              path: "/health/ready"
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            failureThreshold: 3
+
+          # Backend is running and live
           livenessProbe:
             httpGet:
               port: 22111
-              path: "/health"
+              path: "/health/live"
             initialDelaySeconds: 10
             periodSeconds: 30
             failureThreshold: 5

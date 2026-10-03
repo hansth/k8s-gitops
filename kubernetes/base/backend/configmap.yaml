@@ -3,4 +3,5 @@ kind: ConfigMap
 metadata:
   name: todo-db-config
 data:
-  DB_URL: jdbc:postgresql://todo-database-v1-rw.dev-todo.svc.cluster.local:5432/todos
+  # Short Service name that works in every namespace
+  DB_URL: "jdbc:postgresql://todo-database-v1-rw:5432/todos"

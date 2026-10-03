@@ -4,6 +4,14 @@ resources:
   - ../../../base/backend
 
 patches:
+  # run CNPG database with 1 instance
+  - target:
+      kind: Cluster
+      name: todo-database-v1
+    patch: |-
+      - op: replace
+        path: /spec/instances
+        value: 1
   - target:
       kind: Deployment
       name: backend
@@ -11,6 +19,9 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/image
         value: "backend:dev"
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
   - target:
       # replace data field for stringData that enables
       # to use the secret.username in database.owner
