@@ -10,8 +10,13 @@
     "ghcr.io/devcontainers/features/docker-in-docker:4": {}
   },
   "forwardPorts": [
+    // Development
     22111,
     22112,
+    // production
+    23111,
+    23112,
+    // PostgreSQL
     5432,
     5433
   ],
@@ -25,11 +30,11 @@
     }
   },
   // SSH agent from the host, for Git over SSH in IntelliJ and VS Code.
-  // macOS (Docker Desktop): uses the default, Docker Desktop's own agent socket.
-  // Linux: set DEVCONTAINER_SSH_AUTH_SOCK=/run/user/1000/ssh-agent.socket on the host.
+  // Defaults to the Linux systemd ssh-agent socket. On macOS (Docker Desktop),
+  // export DEVCONTAINER_SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock on the
+  // host before opening the container.
   "mounts": [
-    "source=/run/user/1000/ssh-agent.socket,target=/ssh-agent,type=bind",
-    "source=${localEnv:DEVCONTAINER_SSH_AUTH_SOCK:/run/host-services/ssh-auth.sock},target=/ssh-agent,type=bind"
+    "source=${localEnv:DEVCONTAINER_SSH_AUTH_SOCK:/run/user/1000/ssh-agent.socket},target=/ssh-agent,type=bind"
   ],
   "remoteEnv": { "SSH_AUTH_SOCK": "/ssh-agent" }
 }
