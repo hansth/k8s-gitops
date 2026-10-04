@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/hansth/k8s-gitops/compare/openapi-v0.0.3...openapi-v0.0.4) (2026-10-04)
+
+
+### Bug Fixes
+
+* **backend:** disable CORS to resolve stale origin rejection due to same-origin proxy forwarding ([23796b0](https://github.com/hansth/k8s-gitops/commit/23796b09fcf81ba485733406dbe085afb9212c73))
+
 ## [0.0.3](https://github.com/hansth/k8s-gitops/compare/openapi-v0.0.2...openapi-v0.0.3) (2026-10-04)
 
 
