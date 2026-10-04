@@ -35,7 +35,7 @@ services:
       dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:22111/${DB_USERNAME:-hansth}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_USERNAME:-hansth}
       DB_USERNAME: ${DB_USERNAME:-hansth}
       DB_PASSWORD: ${DB_PASSWORD:-password}
     depends_on:
