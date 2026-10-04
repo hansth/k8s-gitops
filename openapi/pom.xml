@@ -17,7 +17,7 @@
     <!--
         Centralizes openapi.yaml and drives codegen for both consumers:
           - Java sources are generated here, compiled, and packaged into this jar.
-            `mvn install` publishes com.hansterhorst:openapi:1.0-SNAPSHOT to ~/.m2 so
+            `mvn install` publishes com.hansterhorst:openapi:0.0.1-SNAPSHOT to ~/.m2 so
             backend/ can depend on it like any other library instead of reaching into
             a sibling module's generated sources.
           - TypeScript types (schema.d.ts) for the @hansterhorst/openapi npm
@@ -89,6 +89,21 @@
                             </arguments>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-frontend-types</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <workingDirectory>${project.basedir}</workingDirectory>
+                            <arguments>
+                                <argument>run</argument>
+                                <argument>generate</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -136,28 +151,6 @@
                             <sources>
                                 <source>${project.build.directory}/generated-sources/openapi/src/gen/java</source>
                             </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>${exec-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>generate-frontend-types</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>npm</executable>
-                            <workingDirectory>${project.basedir}</workingDirectory>
-                            <arguments>
-                                <argument>run</argument>
-                                <argument>generate</argument>
-                            </arguments>
                         </configuration>
                     </execution>
                 </executions>
