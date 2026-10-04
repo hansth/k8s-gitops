@@ -1,0 +1,21 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: prod-todo-cluster
+servers: 1
+#agents: 1
+ports:
+  # host ports offset from dev's (22111/22112) so both clusters can run at once
+  - port: 23111:22111
+    nodeFilters:
+      - loadbalancer
+  - port: 23112:22112
+    nodeFilters:
+      - loadbalancer
+options:
+  k3s:
+    extraArgs:
+      # disable traefik ingress controller
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*

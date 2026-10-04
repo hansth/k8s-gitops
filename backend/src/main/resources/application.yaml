@@ -5,9 +5,11 @@ quarkus:
       artifact-id: openapi
   http:
     port: 22111
+    # The frontend's nginx/Vite proxy forwards /api same-origin from the browser's
+    # point of view (see frontend/nginx.conf.template), so CORS enforcement here
+    # is unneeded and was rejecting requests with a stale allow-listed origin.
     cors:
-      enabled: true
-      origins: ${CORS_ORIGIN:http://localhost:22112}
+      enabled: false
     access-log:
       enabled: true
   hibernate-orm:
