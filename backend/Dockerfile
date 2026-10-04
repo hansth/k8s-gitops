@@ -37,7 +37,7 @@ RUN mvn -f backend/pom.xml package -DskipTests
 
 # RUNTIME STAGE
 #
-# Red Hat UBI 9 OpenJDK 21 runtime image
+# Red Hat UBI 9 OpenJDK 25 runtime image
 # https://catalog.redhat.com/en/software/containers/ubi9/openjdk-25-runtime/
 FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24 AS runtime
 
