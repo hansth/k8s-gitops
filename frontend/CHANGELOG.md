@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/hansth/k8s-gitops/compare/frontend-v0.3.0...frontend-v0.3.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **project:** trigger GitHub Actions to build new images for backend and frontend. ([#26](https://github.com/hansth/k8s-gitops/issues/26)) ([f051dba](https://github.com/hansth/k8s-gitops/commit/f051dba0df506a9a6db0f2e44c9708e21aa62ba0))
+
 ## [0.3.0](https://github.com/hansth/k8s-gitops/compare/frontend-v0.2.0...frontend-v0.3.0) (2026-09-29)
 
 
