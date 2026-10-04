@@ -7,12 +7,9 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>quarkus</packaging>
 
-    <!-- trigger GitHub Action without code change -->
-    <!-- trigger GitHub Action without code change -->
-
     <properties>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>25</maven.compiler.release>
         <spotless-plugin.version>2.44.5</spotless-plugin.version>
         <google-java-format.version>1.36.1</google-java-format.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
@@ -46,7 +43,7 @@
         <dependency>
             <groupId>com.hansterhorst</groupId>
             <artifactId>openapi</artifactId>
-            <!-- Must match <version> in openapi/pom.xml. Release Please doesn't change it; see notes.md -->
+            <!-- Must match <version> in openapi/pom.xml. Release Please doesn't change it -->
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>

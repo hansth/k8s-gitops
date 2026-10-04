@@ -8,12 +8,8 @@
     <artifactId>frontend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <!-- trigger GitHub Action without code change -->
-    <!-- trigger GitHub Action without code change -->
-
     <properties>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
     </properties>
