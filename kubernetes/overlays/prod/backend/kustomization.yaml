@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../base/backend
+
+patches:
+  # always pull the latest published image instead of the base's pinned version
+  - target:
+      kind: Deployment
+      name: backend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: "ghcr.io/hansth/todo-backend:latest"
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always
+  # run CNPG database with 1 instance
+  - target:
+      kind: Cluster
+      name: todo-database-v1
+    patch: |-
+      - op: replace
+        path: /spec/instances
+        value: 1
+  - target:
+      # replace data field for stringData that enables
+      # to use the secret.username in database.owner
+      kind: Secret
+      name: todo-db-creds
+    patch: |-
+      - op: remove
+        path: /data
+      - op: add
+        path: /stringData
+        value:
+          username: todo
+          password: password
+
+replacements:
+  # use the secret.username in the database.owner
+  # see patch Secret that replace data field for stringData
+  - source:
+      kind: Secret
+      name: todo-db-creds
+      fieldPath: stringData.username
+    targets:
+      - select:
+          kind: Cluster
+          group: postgresql.cnpg.io
+          version: v1
+          name: todo-database-v1
+        fieldPaths:
+          - spec.bootstrap.initdb.owner
