@@ -8,6 +8,8 @@
     <artifactId>frontend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
+   <!-- trigger GitHub Action to build frontend image without code changes -->
+
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
