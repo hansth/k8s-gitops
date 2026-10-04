@@ -18,11 +18,18 @@
   "customizations": {
     "jetbrains": {
       "backend": "IntelliJ",
-      "plugins": []
+      "plugins": [
+        // Conventional Commit: https://plugins.jetbrains.com/plugin/13389-conventional-commit
+        "com.github.lppedd.idea-conventional-commit"
+      ]
     }
   },
+  // SSH agent from the host, for Git over SSH in IntelliJ and VS Code.
+  // macOS (Docker Desktop): uses the default, Docker Desktop's own agent socket.
+  // Linux: set DEVCONTAINER_SSH_AUTH_SOCK=/run/user/1000/ssh-agent.socket on the host.
   "mounts": [
-    "source=/run/user/1000/ssh-agent.socket,target=/ssh-agent,type=bind"
+    "source=/run/user/1000/ssh-agent.socket,target=/ssh-agent,type=bind",
+    "source=${localEnv:DEVCONTAINER_SSH_AUTH_SOCK:/run/host-services/ssh-auth.sock},target=/ssh-agent,type=bind"
   ],
   "remoteEnv": { "SSH_AUTH_SOCK": "/ssh-agent" }
 }

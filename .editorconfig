@@ -1,0 +1,14 @@
+# EditorConfig: https://editorconfig.org
+root = true
+
+# All files: the same fixes as the trailing-whitespace and end-of-file-fixer
+# pre-commit hooks, done by the editor on save. The hooks then find nothing to fix.
+[*]
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Markdown: one line per paragraph, the editor soft-wraps it.
+# No hard wrap at a fixed width, also not while typing or reformatting (IntelliJ).
+[*.md]
+max_line_length = off
+ij_wrap_on_typing = false
