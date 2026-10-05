@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/hansth/k8s-gitops/compare/frontend-v0.3.2...frontend-v0.4.0) (2026-10-05)
+
+
+### Features
+
+* **devcontainer:** updated images and tools to specific versions ([#33](https://github.com/hansth/k8s-gitops/issues/33)) ([8967614](https://github.com/hansth/k8s-gitops/commit/89676140582b33a1d1a66a90698a1c1963ef8a0f))
+
 ## [0.3.2](https://github.com/hansth/k8s-gitops/compare/frontend-v0.3.1...frontend-v0.3.2) (2026-10-04)
 
 
