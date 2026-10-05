@@ -30,6 +30,7 @@ spec:
               echo "CNPG database Pod is ready."
       containers:
         - name: backend
+          # https://github.com/hansth/k8s-gitops/tags
           image: ghcr.io/hansth/todo-backend:0.3.0
           imagePullPolicy: IfNotPresent
           ports:
