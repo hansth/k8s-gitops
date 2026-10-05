@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend web app for the todo application. It's built with React 19, TypeScript and Vite, and talks to the [backend](../backend/) API.
+The frontend web app for the todo application. It's built with React 19, TypeScript, and Vite, and talks to the [backend](../backend/) API.
 
 The API is first defined using OpenAPI in [`openapi/openapi.yaml`](../openapi/). The `openapi` package generates TypeScript types from it. The frontend never needs hand-written request or response types.
 
@@ -25,22 +25,28 @@ The frontend only talks to the backend through a typed API client. The types com
 
 `App.tsx` never calls `fetch` itself. Every request goes through `src/api/todos.ts`.
 
-The application always calls the API on its own address (`/api/...`). Something in between passes those calls on to the backend:
+The application always calls the API on its own address (`/api/...`). A proxy passes those calls on to the backend:
 
 - **In dev:** The Vite dev server (`vite.config.ts`)
 - **In the container:** Nginx (`nginx.conf.template`)
 
-The backend URL is never built into the JavaScript, and the browser doesn't need CORS.
+This has two advantages:
+
+- **No backend URL in the code:** The same build runs everywhere. Nginx gets the backend address from `BACKEND_ORIGIN` when the container starts.
+- **No CORS:** The browser only talks to one address. That's why the backend has CORS turned off.
 
 ---
 
 ## Run it locally
 
-You need Node, from `mise.toml`. The devcontainer has it.
+You need Node.js 24. The exact version is in `mise.toml`, and the devcontainer has it installed.
+
+> **Note**: Run the `npm` commands inside the devcontainer. `node_modules` is shared with the host and only works on the system where it was installed.
 
 **1. Install the packages** from the project root. The frontend is part of an npm workspace together with `openapi`.
 
 **From the project root**
+
 ```bash
 npm install
 ```
@@ -48,19 +54,20 @@ npm install
 **2. Start the backend** on port `22111`. See the [backend README](../backend/README.md).
 
 **3. Start the dev server** from the `frontend` directory
+
 ```bash
 npm run dev
 ```
 
 The application runs on <http://localhost:22112>, and the `/api` calls go to `http://localhost:22111`.
 
-Before `dev` and `build` start, npm regenerates the OpenAPI types (`predev` / `prebuild`). You never need to run that step by hand.
+`npm run dev` and `npm run build` first regenerate the TypeScript types from `openapi.yaml`. The `predev` and `prebuild` scripts in `package.json` do that, and no extra step is needed.
 
 ---
 
 ## Scripts
 
-These are the scripts in `frontend/package.json`. Run them from the `frontend` directory, after installing the packages from the project root (see above).
+These are the scripts in `frontend/package.json`. Run them from the `frontend` directory. Install the packages first, as in step 1 of [Run it locally](#run-it-locally).
 
 | Command                 | What it does                                                              |
 |-------------------------|---------------------------------------------------------------------------|
@@ -76,13 +83,14 @@ These are the scripts in `frontend/package.json`. Run them from the `frontend` d
 
 ## Tests
 
-The tests use [Vitest](https://vitest.dev) with Testing Library, in a fake browser (jsdom). They live in `src/test/`:
+The tests use [Vitest](https://vitest.dev) with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/), in a fake browser using [jsdom](https://github.com/jsdom/jsdom). The tests are located in `src/test/`:
 
 - `App.test.tsx`: Tests the page the way a user uses it.
 - `todos.test.ts`: Tests the API functions.
 - `setup.ts`: Shared test setup.
 
 **Run the tests**
+
 ```bash
 npm test
 ```
@@ -94,6 +102,7 @@ npm test
 Vitest measures which lines in `src/` the tests cover and shows which code is not tested.
 
 **Run the tests with coverage**
+
 ```bash
 npm run test:coverage
 ```
@@ -101,37 +110,37 @@ npm run test:coverage
 Then open `coverage/index.html` in a browser.
 
 - The run fails when line coverage is below 80%, locally and in GitHub Actions.
-- The report counts the code in `src/`, without the tests, `main.tsx` and type files.
+- The report counts the code in `src/`, without the tests, `main.tsx`, and type files.
 - Besides `index.html`, it writes `coverage-summary.json`. GitHub Actions reads that file for the pull request comment.
 
 To change the 80% limit, edit `thresholds.lines` in `vite.config.ts`.
 
-In GitHub Actions, every pull request gets a **Frontend coverage** comment. It shows the total line coverage, whether it meets the 80% minimum and a link to download the full report. There's only one comment, updated on every push.
+In GitHub Actions, every pull request gets a **Frontend coverage** comment. It shows the total line coverage and whether it meets the 80% minimum. It also has a link to download the full report. There's only one comment, updated on every push.
 
 ---
 
 ## Code quality
 
-Lint and formatting are checked locally on every commit. GitHub Actions runs the lint again, plus the tests, coverage, build and Docker image scan.
+Lint and formatting are checked locally on every commit. GitHub Actions runs the lint again, plus the tests, coverage, build, and Docker image scan.
 
-| Check                     | When it runs                          | Run it locally                     |
-|---------------------------|---------------------------------------|------------------------------------|
-| Lint (oxlint)             | every commit, and GitHub Actions      | `npm run lint`                     |
-| Formatting (oxfmt)        | every commit                          | `pre-commit run oxfmt --all-files` |
-| Tests and coverage (80%)  | GitHub Actions                        | `npm run test:coverage`            |
-| Type check and build      | GitHub Actions                        | `npm run build`                    |
-| Docker image scan (Trivy) | GitHub Actions, after the image build | `trivy image todo-frontend`        |
+| Check                      | When it runs                          | Run it locally                     |
+|----------------------------|---------------------------------------|------------------------------------|
+| Lint using oxlint          | every commit, and GitHub Actions      | `npm run lint`                     |
+| Formatting using oxfmt     | every commit                          | `pre-commit run oxfmt --all-files` |
+| Tests and coverage (80%)   | GitHub Actions                        | `npm run test:coverage`            |
+| Type check and build       | GitHub Actions                        | `npm run build`                    |
+| Docker image scan by Trivy | GitHub Actions, after the image build | `trivy image todo-frontend`        |
 
 The lint rules are in `.oxlintrc.json`. On commit, any warning blocks the commit (`--deny-warnings`). In GitHub Actions, only errors fail the pull request.
 
-GitHub Actions runs two workflows on every pull request that changes `frontend/`, `openapi/`, the root `package.json` or `.dockerignore`:
+GitHub Actions runs two workflows on every pull request that changes `frontend/`, `openapi/`, the root `package.json`, or `.dockerignore`:
 
-1. `.github/workflows/frontend-testing.yaml` (job **Frontend Testing**): Installs the packages, generates the API types, lints, runs the tests with coverage, builds and posts the coverage comment.
-2. `.github/workflows/frontend-docker.yaml`: Waits until **Frontend Testing** has passed, builds the Docker image, scans it with Trivy and posts a **Frontend Trivy scan** comment.
+1. `.github/workflows/frontend-testing.yaml`: Installs the packages, generates the API types, lints, runs the tests with coverage, builds, and posts the coverage comment.
+2. `.github/workflows/frontend-docker.yaml`: Waits until **Frontend Testing** has passed, builds the Docker image, scans it with Trivy, and posts a **Frontend Trivy scan** comment.
 
-The formatting check (oxfmt) only runs in pre-commit. oxfmt isn't in `package.json`.
+> **Note**: oxfmt only runs in pre-commit, because it isn't in `package.json`. GitHub Actions doesn't check the formatting.
 
-> **Note**: oxlint is pinned to the same version in `package.json` (`1.85.0`) and `.pre-commit-config.yaml` (`v1.85.0`). Update both together. For more background, see [`notes/notes.md`](../notes/notes.md).
+> **Note**: oxlint is pinned to the same version, `1.85.0`, in `package.json` and `.pre-commit-config.yaml`. Update both together.
 
 ---
 
@@ -140,16 +149,19 @@ The formatting check (oxfmt) only runs in pre-commit. oxfmt isn't in `package.js
 The image contains the built application and serves it with Nginx. Build it from the project root, because it needs the `openapi` package.
 
 **Build the Docker image**
+
 ```bash
 docker build -f frontend/Dockerfile -t todo-frontend .
 ```
 
 **Scan the image for known vulnerabilities**
+
 ```bash
 trivy image todo-frontend
 ```
 
 **Run the container**
+
 ```bash
 docker run --rm -p 22112:80 \
   -e BACKEND_ORIGIN=http://host.docker.internal:22111 \
@@ -173,9 +185,11 @@ Only HIGH and CRITICAL vulnerabilities that already have a fix are shown. The sc
 The image is based on `nginx:stable-alpine3.24`. Alpine often releases fixes for its packages before the Nginx image is rebuilt. The Dockerfile upgrades all packages while building.
 
 **Upgrade the packages in the Dockerfile**
+
 ```dockerfile
 RUN apk upgrade --no-cache
 ```
+
 - `--no-cache`: Downloads a fresh package index and doesn't keep it in the image. A separate `apk update` isn't needed.
 
 Docker caches the upgrade step. The cache is only rebuilt when the base image changes. Until then, fixes released after the cached build are missing from the image.
@@ -185,7 +199,7 @@ If Trivy reports a package that should already be fixed, build without the cache
 - **Locally:** Run `docker build --no-cache -f frontend/Dockerfile -t todo-frontend .`
 - **In GitHub Actions:** Delete the caches under **Actions > Caches** (or run `gh cache delete --all`), then run the workflow again.
 
-To run the whole application (PostgreSQL, backend and frontend) in containers, use `docker compose up --build` from the project root. To run it in a local Kubernetes cluster, see the [Kubernetes README](../kubernetes/README.md).
+To run the whole application (PostgreSQL, backend, and frontend) in containers, use `docker compose up --build` from the project root. To run it in a local Kubernetes cluster, see the [Kubernetes README](../kubernetes/README.md).
 
 ---
 
@@ -203,3 +217,5 @@ Each release gets:
 > **Note**: Don't edit the version or the `CHANGELOG.md` by hand. See "Releases" in the [root README](../README.md#releases).
 
 When a `frontend-v*` tag is created, `.github/workflows/docker-publish.yaml` builds the image and pushes it to GitHub's container registry as `ghcr.io/hansth/todo-frontend:X.Y.Z` and `:latest`. See "Release pipeline" in the [root README](../README.md#release-pipeline).
+
+---
