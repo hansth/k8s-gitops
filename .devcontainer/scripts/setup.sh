@@ -14,7 +14,7 @@
 # this project, where mise.toml doesn't apply and the npm shim has no version.
 /usr/local/bin/mise trust "$PWD/mise.toml" && \
 /usr/local/bin/mise install && \
-/usr/local/bin/mise use -g node@lts && \
+/usr/local/bin/mise use -g node@24.21.0 && \
 bash ./.devcontainer/scripts/setup_project.sh
 
 echo "$PWD" # /workspaces/k8sgitops

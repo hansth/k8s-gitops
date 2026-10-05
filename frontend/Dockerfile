@@ -14,9 +14,9 @@
 ###
 
 # BUILD STAGE
-# Starts from the slim variant of the current Node LTS image,
-# named `build` so later stages can reference it.
-FROM node:lts-slim AS build
+# Starts from the slim variant of the Node 24 image,
+# the same major version as mise.toml and GitHub Actions.
+FROM node:24-slim AS build
 
 # Sets the working directory.
 WORKDIR /app

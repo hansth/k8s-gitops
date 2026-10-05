@@ -30,6 +30,7 @@ spec:
               echo "Backend Pod is ready."
       containers:
         - name: frontend
+          # https://github.com/hansth/k8s-gitops/tags
           image: ghcr.io/hansth/todo-frontend:0.3.0
           imagePullPolicy: IfNotPresent
           ports:
