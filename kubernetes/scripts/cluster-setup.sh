@@ -11,6 +11,7 @@ NC='\033[0m' # No Color
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="${ROOT_DIR}/kubernetes/scripts"
 K8S_DIR="$(dirname "$SCRIPT_DIR")"
+
 # CloudNativePG operator version:
 # https://github.com/cloudnative-pg/cloudnative-pg/releases
 CNPG_VERSION="1.30.1"
@@ -88,16 +89,18 @@ if ! k3d cluster list | grep -qE "^${CLUSTER_NAME}[[:space:]]"; then
   echo -e "${GREEN}CloudNativePG operator installed.${NC}"
 fi
 
+# Configure kubectl to use the cluster, before any other kubectl command.
+# An existing cluster doesn't switch the context, and kubectl could still
+# point at the other environment (dev or prod).
+echo -e "\n${YELLOW}Configuring kubectl to use the cluster...${NC}"
+kubectl config use-context k3d-"$CLUSTER_NAME"
+
 # Wait until the CloudNativePG operator runs
 echo -e "\n${YELLOW}Waiting for the CloudNativePG operator to be ready...${NC}"
 kubectl rollout status deployment cnpg-controller-manager -n cnpg-system --timeout=180s
 echo -e "${GREEN}CloudNativePG operator is ready.${NC}"
 
-# Configure kubectl to use the cluster
-echo -e "\n${YELLOW}Configuring kubectl to use the cluster...${NC}"
-kubectl config use-context k3d-"$CLUSTER_NAME"
-
-# Build and import local images (dev only; prod pulls versioned images from GHCR)
+# Build and import local images (dev only; prod pulls the latest images from GHCR)
 if [[ "$OVERLAY" == "dev" ]]; then
   echo -e "\n${YELLOW}Building Docker images...${NC}"
   echo "Building backend image..."
